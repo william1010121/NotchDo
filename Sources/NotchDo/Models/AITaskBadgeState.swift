@@ -1,26 +1,16 @@
-/// What the collapsed notch shows to the right of the hardware cutout.
-enum AITaskBadgeState: Equatable {
-    case hidden
-    case running(Int)
-    case queued(Int)
+/// What the collapsed notch shows to the right of the hardware cutout: the number of
+/// unfinished AI tasks, mirroring the open-reminder count on the left.
+struct AITaskBadgeState: Equatable {
+    var openCount: Int
+    var isRunning: Bool
 
     init(tasks: [AITask]) {
-        let running = tasks.filter { $0.status == .running }.count
-        let queued = tasks.filter { $0.status == .queued }.count
-        if running > 0 {
-            self = .running(running)
-        } else if queued > 0 {
-            self = .queued(queued)
-        } else {
-            self = .hidden
-        }
+        openCount = tasks.filter { $0.status == .queued || $0.status == .running }.count
+        isRunning = tasks.contains { $0.status == .running }
     }
 
-    var accessibilityLabel: String? {
-        switch self {
-        case .hidden: nil
-        case .running(let count): count == 1 ? "1 AI task running" : "\(count) AI tasks running"
-        case .queued(let count): count == 1 ? "1 AI task queued" : "\(count) AI tasks queued"
-        }
+    var accessibilityLabel: String {
+        let noun = openCount == 1 ? "AI task" : "AI tasks"
+        return isRunning ? "\(openCount) \(noun) open, Claude is working" : "\(openCount) \(noun) open"
     }
 }

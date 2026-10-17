@@ -8,26 +8,36 @@ struct AITaskBadgeStateTests {
         AITask(prompt: "x", status: status)
     }
 
-    @Test("Nothing active hides the badge")
-    func hidden() {
-        #expect(AITaskBadgeState(tasks: []) == .hidden)
-        #expect(AITaskBadgeState(tasks: [task(.done), task(.failed), task(.cancelled)]) == .hidden)
+    @Test("With no tasks the badge counts zero and is idle")
+    func empty() {
+        let state = AITaskBadgeState(tasks: [])
+
+        #expect(state.openCount == 0)
+        #expect(!state.isRunning)
     }
 
-    @Test("Running work takes priority over queued work")
-    func runningFirst() {
-        #expect(AITaskBadgeState(tasks: [task(.queued), task(.running), task(.running)]) == .running(2))
+    @Test("Finished tasks are not counted")
+    func finishedIgnored() {
+        let state = AITaskBadgeState(tasks: [task(.done), task(.failed), task(.cancelled)])
+
+        #expect(state.openCount == 0)
+        #expect(!state.isRunning)
     }
 
-    @Test("Only queued work shows the queue length")
-    func queued() {
-        #expect(AITaskBadgeState(tasks: [task(.queued), task(.done), task(.queued)]) == .queued(2))
+    @Test("Queued and running tasks are counted, and any running task marks it active")
+    func openCount() {
+        let state = AITaskBadgeState(tasks: [task(.queued), task(.running), task(.running), task(.done)])
+
+        #expect(state.openCount == 3)
+        #expect(state.isRunning)
+        #expect(AITaskBadgeState(tasks: [task(.queued), task(.queued)]) == AITaskBadgeState(tasks: [task(.queued), task(.queued)]))
+        #expect(!AITaskBadgeState(tasks: [task(.queued)]).isRunning)
     }
 
-    @Test("VoiceOver text reflects the state")
+    @Test("VoiceOver text reflects the count and activity")
     func accessibility() {
-        #expect(AITaskBadgeState.hidden.accessibilityLabel == nil)
-        #expect(AITaskBadgeState.running(1).accessibilityLabel == "1 AI task running")
-        #expect(AITaskBadgeState.queued(3).accessibilityLabel == "3 AI tasks queued")
+        #expect(AITaskBadgeState(tasks: []).accessibilityLabel == "0 AI tasks open")
+        #expect(AITaskBadgeState(tasks: [task(.queued)]).accessibilityLabel == "1 AI task open")
+        #expect(AITaskBadgeState(tasks: [task(.running), task(.queued)]).accessibilityLabel == "2 AI tasks open, Claude is working")
     }
 }

@@ -184,9 +184,8 @@ struct NotchRootView: View {
 
     @ViewBuilder
     private var aiTaskBadge: some View {
-        let state = AITaskBadgeState(tasks: aiStore.tasks)
-        if !isExpanded, state != .hidden {
-            AITaskBadge(state: state, diameter: 20)
+        if !isExpanded {
+            AITaskBadge(state: AITaskBadgeState(tasks: aiStore.tasks), diameter: 20)
                 .position(
                     x: layout.metrics.expandedSize.width / 2
                         + layout.metrics.collapsedSize.width / 2

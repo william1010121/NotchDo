@@ -5,8 +5,16 @@ enum AppActions {
         "com.luku.NotchDo.quickCaptureRequested"
     )
 
+    static let aiCaptureRequested = Notification.Name(
+        "com.luku.NotchDo.aiCaptureRequested"
+    )
+
     static func requestQuickCapture() {
         NotificationCenter.default.post(name: quickCaptureRequested, object: nil)
+    }
+
+    static func requestAICapture() {
+        NotificationCenter.default.post(name: aiCaptureRequested, object: nil)
     }
 
     static func openReminders() {

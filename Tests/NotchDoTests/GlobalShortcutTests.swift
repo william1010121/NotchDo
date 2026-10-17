@@ -82,4 +82,57 @@ struct GlobalShortcutTests {
         #expect(registration.unregisterCount == 1)
         #expect(registration.registeredShortcuts == [.default, .default])
     }
+
+    @Test("AI Capture defaults to Control–Option–E")
+    func aiCaptureDefault() {
+        #expect(GlobalShortcut.aiCapture.displayName == "⌃⌥E")
+        #expect(GlobalShortcut.aiCapture.isValid)
+        #expect(GlobalShortcut.aiCapture != .default)
+    }
+
+    @Test("Stores with different keys keep independent shortcuts")
+    func independentStores() throws {
+        let suite = "NotchDoTests.globalShortcut.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let quickRegistration = FakeGlobalShortcutRegistration()
+        let aiRegistration = FakeGlobalShortcutRegistration()
+        let quick = GlobalShortcutStore(registration: quickRegistration, userDefaults: defaults)
+        let ai = GlobalShortcutStore(
+            registration: aiRegistration,
+            userDefaults: defaults,
+            storageKey: GlobalShortcutStore.aiCaptureDefaultsKey,
+            defaultShortcut: .aiCapture
+        )
+        let replacement = GlobalShortcut(keyCode: UInt32(kVK_ANSI_J), modifiers: [.command, .option])
+
+        #expect(quick.shortcut == .default)
+        #expect(ai.shortcut == .aiCapture)
+        #expect(ai.setShortcut(replacement))
+
+        #expect(quick.shortcut == .default)
+        #expect(defaults.data(forKey: GlobalShortcutStore.defaultsKey) == nil)
+        let data = try #require(defaults.data(forKey: GlobalShortcutStore.aiCaptureDefaultsKey))
+        #expect(try JSONDecoder().decode(GlobalShortcut.self, from: data) == replacement)
+
+        let reloaded = GlobalShortcutStore(
+            registration: FakeGlobalShortcutRegistration(),
+            userDefaults: defaults,
+            storageKey: GlobalShortcutStore.aiCaptureDefaultsKey,
+            defaultShortcut: .aiCapture
+        )
+        #expect(reloaded.shortcut == replacement)
+    }
+
+    @Test("A shortcut already used by the sibling NotchDo shortcut is rejected")
+    func siblingConflict() {
+        let registration = FakeGlobalShortcutRegistration()
+        let store = GlobalShortcutStore(registration: registration, userDefaults: nil)
+        store.siblingShortcut = { .aiCapture }
+
+        #expect(!store.setShortcut(.aiCapture))
+        #expect(store.shortcut == .default)
+        #expect(store.registrationError != nil)
+        #expect(registration.registeredShortcuts == [.default])
+    }
 }

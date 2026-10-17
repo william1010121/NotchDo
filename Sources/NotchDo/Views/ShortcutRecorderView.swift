@@ -3,13 +3,15 @@ import SwiftUI
 
 struct ShortcutRecorderView: View {
     let store: GlobalShortcutStore
+    var title = "Quick capture shortcut"
+    var detail = "Opens Quick Reminder from any app. Press Escape to cancel recording."
     @State private var isRecording = false
     @State private var localMonitor: Any?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack {
-                Text("Quick capture shortcut")
+                Text(title)
                 Spacer()
                 Button(isRecording ? "Type shortcut…" : store.shortcut.displayName) {
                     beginRecording()
@@ -17,12 +19,12 @@ struct ShortcutRecorderView: View {
                 .frame(minWidth: 118)
                 .accessibilityLabel(
                     isRecording
-                        ? "Type a new quick capture shortcut"
-                        : "Quick capture shortcut, \(store.shortcut.displayName)"
+                        ? "Type a new shortcut for \(title)"
+                        : "\(title), \(store.shortcut.displayName)"
                 )
             }
 
-            Text("Opens Quick Reminder from any app. Press Escape to cancel recording.")
+            Text(detail)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

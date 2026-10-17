@@ -3,13 +3,17 @@ import Foundation
 
 @MainActor
 final class CarbonGlobalShortcutRegistration: GlobalShortcutRegistration {
-    private static let hotKeyID = EventHotKeyID(signature: 0x4E_44_51_43, id: 1) // NDQC
+    private static let signature: OSType = 0x4E_44_51_43 // NDQC
+    /// Each registration owns one hot key id. Every instance installs its own application
+    /// event handler and ignores events whose id is not its own, so several shortcuts coexist.
+    private let hotKeyID: EventHotKeyID
     private var hotKey: EventHotKeyRef?
     private var eventHandler: EventHandlerRef?
     private var action: (@MainActor () -> Void)?
     private var pressState = GlobalShortcutPressState()
 
-    init() {
+    init(id: UInt32 = 1) {
+        hotKeyID = EventHotKeyID(signature: Self.signature, id: id)
         var eventTypes = [EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: OSType(kEventHotKeyPressed)
@@ -31,13 +35,13 @@ final class CarbonGlobalShortcutRegistration: GlobalShortcutRegistration {
                     nil,
                     &identifier
                 )
-                guard status == noErr,
-                      identifier.signature == CarbonGlobalShortcutRegistration.hotKeyID.signature,
-                      identifier.id == CarbonGlobalShortcutRegistration.hotKeyID.id else {
-                    return OSStatus(eventNotHandledErr)
-                }
                 let registration = Unmanaged<CarbonGlobalShortcutRegistration>
                     .fromOpaque(userData).takeUnretainedValue()
+                guard status == noErr,
+                      identifier.signature == registration.hotKeyID.signature,
+                      identifier.id == registration.hotKeyID.id else {
+                    return OSStatus(eventNotHandledErr)
+                }
                 let isPressed = GetEventKind(event) == UInt32(kEventHotKeyPressed)
                 Task { @MainActor in
                     if registration.pressState.update(isPressed: isPressed) {
@@ -63,7 +67,7 @@ final class CarbonGlobalShortcutRegistration: GlobalShortcutRegistration {
         let status = RegisterEventHotKey(
             shortcut.keyCode,
             shortcut.carbonModifiers,
-            CarbonGlobalShortcutRegistration.hotKeyID,
+            hotKeyID,
             GetApplicationEventTarget(),
             0,
             &hotKey

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NotchRootView: View {
     let store: RemindersStore
+    let aiStore: AITaskStore
     @ObservedObject var layout: NotchLayoutModel
     @ObservedObject var interaction: NotchInteractionModel
 
@@ -19,6 +20,7 @@ struct NotchRootView: View {
         ZStack(alignment: .top) {
             expandingSurface
             taskCountBadge
+            aiTaskBadge
         }
         .frame(
             width: layout.metrics.expandedSize.width,
@@ -178,6 +180,23 @@ struct NotchRootView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(store.reminders.count) open reminders")
         .zIndex(4)
+    }
+
+    @ViewBuilder
+    private var aiTaskBadge: some View {
+        let state = AITaskBadgeState(tasks: aiStore.tasks)
+        if !isExpanded, state != .hidden {
+            AITaskBadge(state: state, diameter: 20)
+                .position(
+                    x: layout.metrics.expandedSize.width / 2
+                        + layout.metrics.collapsedSize.width / 2
+                        + 18,
+                    y: layout.metrics.bridgeHeight / 2
+                )
+                .allowsHitTesting(false)
+                .transition(.opacity)
+                .zIndex(4)
+        }
     }
 
     private var taskCountBadgePosition: CGPoint {

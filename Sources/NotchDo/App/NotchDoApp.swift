@@ -8,12 +8,15 @@ struct NotchDoApp: App {
         Settings {
             SettingsView(
                 store: appDelegate.remindersStore,
-                globalShortcut: appDelegate.globalShortcutStore
+                globalShortcut: appDelegate.globalShortcutStore,
+                aiCaptureShortcut: appDelegate.aiCaptureShortcutStore,
+                ai: appDelegate.ai
             )
         }
         .commands {
             CommandMenu("Capture") {
                 Button("Quick Reminder…", action: AppActions.requestQuickCapture)
+                Button("AI Task…", action: AppActions.requestAICapture)
             }
         }
     }

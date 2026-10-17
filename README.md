@@ -112,6 +112,20 @@ Available modes:
 Build output is staged at `dist/NotchDo.app`. Both `dist/` and SwiftPM build
 artifacts are intentionally excluded from version control.
 
+## AI tasks (this fork)
+
+Press **Control–Option–E** from any app to hand a todo to Claude. Tasks appear in a
+panel to the right of the expanded notch, and run through the local `claude` CLI in
+`~/Desktop/NotchDo/`. A progress page for every task is served at
+`http://127.0.0.1:<port>` (see Settings for the port), and results can be published as
+private Claude Artifacts.
+
+- Requires [Claude Code](https://claude.com/claude-code), already signed in.
+- Claude runs unsandboxed with the permission level you pick in Settings
+  (default: edits plus an allowlist of commands).
+- AI tasks are stored as files in the workspace, separate from Apple Reminders.
+- Design and known limitations: [AI_DESIGN.md](AI_DESIGN.md).
+
 ## Reminders access
 
 On first use, NotchDo explains why access is needed before requesting full
@@ -125,7 +139,10 @@ If permission was denied previously, open:
 
 Reminder content is read from and written to EventKit in place. NotchDo does
 not copy tasks into another persistence layer and does not transmit reminder
-data to a server.
+data to a server. AI tasks are the one exception: they are plain files under
+`~/Desktop/NotchDo/.notchdo/`, are never written to Reminders, and are sent only to
+Claude (through the CLI you installed) and, when enabled, as Artifacts to your
+claude.ai account.
 
 Existing `EKReminder` instances are updated instead of being reconstructed.
 This preserves fields that NotchDo does not currently expose for editing.
@@ -146,10 +163,11 @@ Sources/NotchDo/
 ├── Models/     Reminder editing and authorization state
 ├── Stores/     EventKit-backed reminder state
 ├── Support/    Formatting, layout, and interaction helpers
+├── Services/   Process, file, and network side effects (AI workspace)
 ├── Views/      SwiftUI surfaces and controls
 └── Windowing/  AppKit panel integration
 
-Support/        Bundle metadata and sandbox entitlements
+Support/        Bundle metadata and entitlements
 script/         Development and distribution workflows
 ```
 

@@ -7,6 +7,11 @@ struct GlobalShortcut: Codable, Equatable, Sendable {
         modifiers: [.control, .option]
     )
 
+    static let aiCapture = GlobalShortcut(
+        keyCode: UInt32(kVK_ANSI_E),
+        modifiers: [.control, .option]
+    )
+
     let keyCode: UInt32
     let modifiers: NSEvent.ModifierFlags
 

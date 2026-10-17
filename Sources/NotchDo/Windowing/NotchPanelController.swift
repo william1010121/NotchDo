@@ -4,17 +4,28 @@ import SwiftUI
 @MainActor
 final class NotchPanelController: NSObject {
     private let store: RemindersStore
+    private let aiStore: AITaskStore
+    private let progressServer: LocalProgressServer
     private let layout: NotchLayoutModel
     private let interaction = NotchInteractionModel()
     private var anchorScreen: NSScreen
     private var panel: NotchPanel?
+    private var aiDrawer: AIDrawerPanelController?
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
     private var pointerPollingTimer: Timer?
 
-    init(store: RemindersStore) {
+    init(
+        store: RemindersStore,
+        aiStore: AITaskStore,
+        progressServer: LocalProgressServer,
+        aiShortcutHint: @escaping () -> String,
+        aiActions: AIDrawerActions
+    ) {
         let screen = Self.preferredScreen()
         self.store = store
+        self.aiStore = aiStore
+        self.progressServer = progressServer
         self.layout = NotchLayoutModel(screen: screen)
         self.anchorScreen = screen
         super.init()
@@ -25,6 +36,17 @@ final class NotchPanelController: NSObject {
             self?.refreshAuthorizationForPanelInteraction()
         }
         configurePanel()
+        if let panel {
+            aiDrawer = AIDrawerPanelController(
+                store: aiStore,
+                progressServer: progressServer,
+                layout: layout,
+                interaction: interaction,
+                shortcutHint: aiShortcutHint,
+                actions: aiActions,
+                mainFrame: panel.frame
+            )
+        }
         installPointerMonitoring()
 
         NotificationCenter.default.addObserver(
@@ -43,6 +65,7 @@ final class NotchPanelController: NSObject {
 
     func show() {
         panel?.orderFrontRegardless()
+        aiDrawer?.show()
         updatePointerLocation()
     }
 
@@ -76,7 +99,12 @@ final class NotchPanelController: NSObject {
             .ignoresCycle
         ]
 
-        let rootView = NotchRootView(store: store, layout: layout, interaction: interaction)
+        let rootView = NotchRootView(
+            store: store,
+            aiStore: aiStore,
+            layout: layout,
+            interaction: interaction
+        )
         let hostingView = NSHostingView(rootView: rootView)
         hostingView.sizingOptions = []
         hostingView.wantsLayer = true
@@ -128,7 +156,7 @@ final class NotchPanelController: NSObject {
         guard let panel else { return }
         let pointer = NSEvent.mouseLocation
         let activeRect = interaction.isExpanded
-            ? panel.frame.insetBy(dx: -3, dy: -3)
+            ? AIDrawerMetrics.trackingRect(mainFrame: panel.frame, tolerance: 3)
             : layout.metrics.notchTriggerRect
         interaction.updatePointerInside(activeRect.contains(pointer))
     }
@@ -140,6 +168,7 @@ final class NotchPanelController: NSObject {
 
     private func setExpanded(_ expanded: Bool) {
         guard let panel else { return }
+        aiDrawer?.setExpanded(expanded)
         if expanded {
             panel.ignoresMouseEvents = false
             panel.makeKey()
@@ -186,6 +215,7 @@ final class NotchPanelController: NSObject {
         anchorScreen = Self.preferredScreen()
         layout.update(for: anchorScreen)
         panel.setFrame(frame(for: layout.metrics.expandedSize), display: true)
+        aiDrawer?.reposition(besideMainPanel: panel.frame)
         updatePointerLocation()
     }
 

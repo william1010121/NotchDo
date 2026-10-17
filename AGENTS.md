@@ -2,8 +2,8 @@
 
 ## Project
 
-- NotchDo is a SwiftPM macOS 14+ app built with Swift 6.2. It is a minimal, notch-hosted Apple Reminders client.
-- Keep changes native, focused, and consistent with the existing structure under `Sources/NotchDo/{App,Models,Stores,Support,Views,Windowing}`.
+- NotchDo is a SwiftPM macOS 14+ app built with Swift 6.2. It is a minimal, notch-hosted Apple Reminders client. This fork adds a Claude-only AI todo workspace beside the reminders list.
+- Keep changes native, focused, and consistent with the existing structure under `Sources/NotchDo/{App,Models,Stores,Services,Support,Views,Windowing}` (`Services` holds process and network side effects such as the Claude runner and local progress server).
 - Prefer one named type per Swift file, in production code and tests. Name files after their primary type.
 - Keep UI state on `@MainActor` and use the Observation framework for shared observable state. Avoid broad invalidations in reminder lists and rows.
 
@@ -17,7 +17,8 @@
 
 ## Reminders and Data Integrity
 
-- EventKit is the sole source of truth. Do not add a separate task database, cloud service, or shadow copy of reminder data.
+- EventKit is the sole source of truth for **Apple Reminders data**. Do not add a separate task database, cloud service, or shadow copy of reminder data.
+- Exception: **AI todos** (tasks delegated to Claude) are not Reminders and live in an independent local store under `~/Desktop/NotchDo/` (see [AI_DESIGN.md](AI_DESIGN.md)). Never mirror AI todos into EventKit or reminders into the AI store, and keep the AI store and runner code (`AITask*`, `Claude*`, `LocalProgressServer`) free of EventKit imports. This fork has no cloud service or analytics; AI todo data stays on the local machine, and the only network surface is the loopback-only progress server.
 - Mutate existing `EKReminder` objects instead of reconstructing them so fields NotchDo does not expose remain intact.
 - Treat synchronization as two-way wherever public EventKit APIs permit it. Handle authorization, external-change notifications, stale async reloads, optimistic updates, rollback, and visible failures deliberately.
 - Preserve the reminder order returned by EventKit. Its public API exposes no manual sort-position metadata, so do not claim or implement persistent reordering without a supported API.

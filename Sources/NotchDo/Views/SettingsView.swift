@@ -5,13 +5,22 @@ import SwiftUI
 struct SettingsView: View {
     let store: RemindersStore
     let globalShortcut: GlobalShortcutStore
+    let aiCaptureShortcut: GlobalShortcutStore
+    let ai: AIServices
     @State private var launchAtLogin: LaunchAtLoginStore
 
     @Environment(\.scenePhase) private var scenePhase
 
-    init(store: RemindersStore, globalShortcut: GlobalShortcutStore) {
+    init(
+        store: RemindersStore,
+        globalShortcut: GlobalShortcutStore,
+        aiCaptureShortcut: GlobalShortcutStore,
+        ai: AIServices
+    ) {
         self.store = store
         self.globalShortcut = globalShortcut
+        self.aiCaptureShortcut = aiCaptureShortcut
+        self.ai = ai
         #if NOTCHDO_DEMO
         _launchAtLogin = State(initialValue: LaunchAtLoginStore(service: DemoLoginItemService()))
         #else
@@ -22,10 +31,14 @@ struct SettingsView: View {
     init(
         store: RemindersStore,
         globalShortcut: GlobalShortcutStore,
+        aiCaptureShortcut: GlobalShortcutStore,
+        ai: AIServices,
         launchAtLogin: LaunchAtLoginStore
     ) {
         self.store = store
         self.globalShortcut = globalShortcut
+        self.aiCaptureShortcut = aiCaptureShortcut
+        self.ai = ai
         _launchAtLogin = State(initialValue: launchAtLogin)
     }
 
@@ -76,6 +89,16 @@ struct SettingsView: View {
 
             ShortcutRecorderView(store: globalShortcut)
 
+            ShortcutRecorderView(
+                store: aiCaptureShortcut,
+                title: "AI task shortcut",
+                detail: "Opens the AI task panel from any app so you can hand a todo to Claude."
+            )
+
+            Divider()
+
+            AISettingsView(ai: ai)
+
             Divider()
 
             LabeledContent("Reminders access") {
@@ -83,7 +106,7 @@ struct SettingsView: View {
                     .foregroundStyle(store.authorization == .fullAccess ? .green : .secondary)
             }
 
-            Text("NotchDo stores no task database. Changes are saved directly to Apple Reminders.")
+            Text("Reminders are saved directly to Apple Reminders. AI tasks are stored as files in the NotchDo folder on your Desktop.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

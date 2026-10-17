@@ -4,14 +4,31 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let remindersStore = RemindersStore()
     let globalShortcutStore = GlobalShortcutStore()
+    let aiCaptureShortcutStore = GlobalShortcutStore.aiCapture()
+    let ai = AIServices()
     private var panelController: NotchPanelController?
     private var quickCapturePanelController: QuickCapturePanelController?
+    private var aiCapturePanelController: AICapturePanelController?
     private var quickCaptureRequestObserver: NSObjectProtocol?
+    private var aiCaptureRequestObserver: NSObjectProtocol?
+
+    override init() {
+        super.init()
+        globalShortcutStore.siblingShortcut = { [aiCaptureShortcutStore] in aiCaptureShortcutStore.shortcut }
+        aiCaptureShortcutStore.siblingShortcut = { [globalShortcutStore] in globalShortcutStore.shortcut }
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        ai.start()
 
-        let panelController = NotchPanelController(store: remindersStore)
+        let panelController = NotchPanelController(
+            store: remindersStore,
+            aiStore: ai.taskStore,
+            progressServer: ai.server,
+            aiShortcutHint: { [aiCaptureShortcutStore] in aiCaptureShortcutStore.shortcut.displayName },
+            aiActions: ai.makeDrawerActions()
+        )
         self.panelController = panelController
         panelController.show()
 
@@ -26,6 +43,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak quickCapturePanelController] _ in
             Task { @MainActor in quickCapturePanelController?.show() }
+        }
+
+        let aiCapturePanelController = AICapturePanelController(
+            store: ai.taskStore,
+            shortcutHint: { [aiCaptureShortcutStore] in aiCaptureShortcutStore.shortcut.displayName }
+        )
+        self.aiCapturePanelController = aiCapturePanelController
+        aiCaptureShortcutStore.onPerformShortcut = { [weak aiCapturePanelController] in
+            aiCapturePanelController?.toggle()
+        }
+        aiCaptureRequestObserver = NotificationCenter.default.addObserver(
+            forName: AppActions.aiCaptureRequested,
+            object: nil,
+            queue: .main
+        ) { [weak aiCapturePanelController] _ in
+            Task { @MainActor in aiCapturePanelController?.show() }
         }
 
         Task {
@@ -44,8 +77,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        ai.shutdown()
         if let quickCaptureRequestObserver {
             NotificationCenter.default.removeObserver(quickCaptureRequestObserver)
+        }
+        if let aiCaptureRequestObserver {
+            NotificationCenter.default.removeObserver(aiCaptureRequestObserver)
         }
     }
 }

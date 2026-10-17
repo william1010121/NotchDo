@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct AICaptureView: View {
-    let shortcutHint: String
     @Bindable var session: AICaptureSession
     let onDismiss: () -> Void
     var onHeightChange: (CGFloat) -> Void = { _ in }
@@ -53,7 +52,7 @@ struct AICaptureView: View {
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("Return to add · Shift-Return for a new line · Esc to close · \(shortcutHint) toggles this panel")
+                Text("Return to add · Shift-Return for a new line · Esc to close · \(session.shortcutHint) toggles this panel")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

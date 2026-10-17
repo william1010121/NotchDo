@@ -6,6 +6,8 @@ import Observation
 @Observable
 final class AICaptureSession {
     var prompt = ""
+    /// Shown in the panel's hint line; updated on each presentation because it can change in Settings.
+    var shortcutHint = ""
     private(set) var errorMessage: String?
     private(set) var presentationID = 0
     private let store: AITaskStore

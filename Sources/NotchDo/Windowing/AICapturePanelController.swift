@@ -39,8 +39,11 @@ final class AICapturePanelController: NSObject {
             return
         }
         previouslyActiveApplication = NSWorkspace.shared.frontmostApplication
+        session.shortcutHint = shortcutHint()
+        // Same order as Quick Capture: the view already exists, so the focus request fired by
+        // the new presentation ID lands once the panel is key. Rebuilding the view here made
+        // the focus request run before the window could accept it.
         session.prepare()
-        rebuildContent(for: panel)
         position(panel, on: Self.activeScreen())
         installOutsideClickMonitor()
         panel.alphaValue = 0
@@ -92,14 +95,7 @@ final class AICapturePanelController: NSObject {
         ]
         panel.title = "AI Task"
         panel.setAccessibilityTitle("AI Task")
-        self.panel = panel
-        rebuildContent(for: panel)
-    }
-
-    /// The shortcut hint can change in Settings, so the content is rebuilt on each presentation.
-    private func rebuildContent(for panel: NSPanel) {
         let rootView = AICaptureView(
-            shortcutHint: shortcutHint(),
             session: session,
             onDismiss: { [weak self] in self?.dismiss() },
             onHeightChange: { [weak self] height in
@@ -113,6 +109,7 @@ final class AICapturePanelController: NSObject {
         let hostingView = NSHostingView(rootView: rootView)
         hostingView.sizingOptions = []
         panel.contentView = hostingView
+        self.panel = panel
     }
 
     private func position(_ panel: NSPanel, on screen: NSScreen) {
